@@ -1,34 +1,38 @@
 # Afrivel — Architecture
 
-## Frontière Go ↔ Rust
+## CLI globale ↔ application (tout en Rust)
+
+Toute la chaîne est en **Rust** (mono-langage). Deux binaires, deux rôles :
 
 ```
-┌─ afrivel (binaire Go/Cobra) ───────────────┐   ┌─ Runtime Rust (crates framework) ─┐
-│ make:* (scaffolding + codegen, go:embed)   │   │ afrivel-core   (routing,erreurs,  │
-│ new        (bootstrap projet)              │   │   config, DI, validation, tracing)│
-│ dev/watch  (recompile+restart)             │──▶│ afrivel-orm    (SeaORM++)         │
-│ manifest   (lecture/écriture Afrivel.toml) │   │ afrivel-macros (derive)           │
-│ module:list (lit manifeste)                │   │ afrivel-cli-rt (sous-cmd runtime  │
-│ migrate/seed/serve/route:list ─délègue─▶   │   │   migrate/seed/serve/route:list,  │
-│        cargo run -p app -- <sous-cmd>      │   │   via clap)                       │
-└────────────────────────────────────────────┘   └───────────────────────────────────┘
+┌─ afrivel  (crate afrivel-cli, clap) ───────┐   ┌─ Application générée (crate app) ──┐
+│ GLOBAL, agnostique du projet               │   │ PROJET, lie tous les modules       │
+│   (cargo install afrivel)                  │   │   (cargo run -p app -- <sous-cmd>) │
+│ new        (bootstrap projet)              │   │ serve / migrate* / db:seed /       │
+│ make:*     (scaffolding + codegen)         │──▶│   route:list                       │
+│ dev/watch  (recompile+restart)             │   │ via afrivel-cli-rt (clap, partagé) │
+│ module:list (lit Afrivel.toml)             │   │                                    │
+│ migrate/seed/serve/route:list ─délègue─▶   │   │ dépend de afrivel-core/orm/macros  │
+└────────────────────────────────────────────┘   └────────────────────────────────────┘
 ```
+
+**Pourquoi deux binaires :** le binaire global `afrivel` est installé une fois et **ne connaît pas** les modules d'un projet donné (il ne peut pas les lier à la compilation). Les commandes runtime sont donc exécutées par le binaire `app` du projet, qui lie tous les modules. `afrivel <cmd>` les **enveloppe** pour l'UX (délégation via `cargo run -p app`).
 
 **Invariants :**
-1. La CLI Go ne se connecte **jamais** à la BDD.
-2. La CLI Go ne **parse jamais** du code Rust. Elle lit/écrit uniquement `Afrivel.toml` et des fichiers `Cargo.toml` (TOML).
-3. Toute commande exigeant le runtime (BDD **ou** introspection du routeur) est déléguée à `cargo run -p app -- <sous-commande>`.
+1. Le binaire global `afrivel` ne lie pas les modules d'un projet → il **délègue** les commandes runtime au binaire `app` du projet.
+2. **Aucun contrat inter-langage** : `afrivel-cli` (global) et `app` partagent la crate `afrivel-cli-rt` (définition clap des sous-commandes) → contrat vérifié à la compilation, pas de dérive.
+3. L'introspection s'appuie sur `Afrivel.toml` (modules) + délégation runtime (routes), **pas** sur du parsing de code Rust — choix de design : explicite et déterministe (le framework *pourrait* parser via `syn`, mais on s'en passe).
 4. La sortie de tout `make:*` **compile** (`cargo build` vert).
 
 ## Catégories de commandes
 
 | Catégorie | Exécution | Exemples |
 |-----------|-----------|----------|
-| Pures Go (hors-ligne) | binaire Go seul | `new`, `make:*`, `module:list`, `completion` |
-| Déléguées | `cargo run -p app` → runtime Rust | `migrate*`, `db:seed`, `serve`, **`route:list`** |
-| Hybrides | Go surveille + délègue | `dev` / `watch` |
+| Pures (hors-ligne, global) | binaire `afrivel` seul | `new`, `make:*`, `module:list`, `completion` |
+| Déléguées | `cargo run -p app` (binaire projet) | `migrate*`, `db:seed`, `serve`, **`route:list`** |
+| Hybrides | `afrivel` surveille + délègue | `dev` / `watch` |
 
-> **`route:list` est délégué** (correction architecturale) : les routes sont définies en Rust, pas dans le manifeste. Seul le runtime, qui monte le routeur Axum, connaît la table de routes exacte. La lister sans parser du Rust est impossible → délégation obligatoire (invariant n°2). `module:list`, lui, reste pur Go (les modules **sont** dans `Afrivel.toml`).
+> **`route:list` est délégué** : les routes sont définies en Rust, pas dans le manifeste. Seul le binaire `app`, qui monte le routeur Axum, connaît la table exacte. `module:list`, lui, reste hors-ligne (les modules **sont** dans `Afrivel.toml`).
 
 Hors d'un projet Afrivel (`Afrivel.toml` absent) : seules `new` et l'aide fonctionnent.
 
@@ -142,8 +146,8 @@ Pas de conteneur runtime (non idiomatique en Rust). Le mécanisme :
 
 | Registre | Fichier | Vérité de | Maintenu par |
 |----------|---------|-----------|--------------|
-| Outillage | `Afrivel.toml` | la CLI (introspection rapide, hors-ligne) | CLI Go |
-| Compilation | `app/src/registry.rs` + path-deps dans `app/Cargo.toml` & `modules/*/Cargo.toml` | le compilateur Rust | CLI Go (édition) + rustc |
+| Outillage | `Afrivel.toml` | la CLI (introspection rapide, hors-ligne) | `afrivel` (CLI) |
+| Compilation | `app/src/registry.rs` + path-deps dans `app/Cargo.toml` & `modules/*/Cargo.toml` | le compilateur Rust | `afrivel` (édition) + rustc |
 
 **Résolution de conflit** : le code Rust (qui compile) fait foi ; `Afrivel.toml` est régénérable (`afrivel doctor`, post-v0.0.1).
 
@@ -166,13 +170,16 @@ path = "modules/payment"
 deps = ["auth"]
 ```
 
-## Crates runtime (framework, dépendances externes)
+## Crates du framework (toutes en Rust)
 
-| Crate | Responsabilité |
-|-------|----------------|
-| `afrivel-core` | Routing (Axum/Tower), middleware, **type d'erreur + IntoResponse**, config typée (serde + figment), validation, logging (`tracing`), DI (State/Extension). |
-| `afrivel-orm` | Couche ergonomique sur SeaORM/sqlx : relations, scopes, factories, seeders, agrégation de migrations. |
-| `afrivel-macros` | `#[derive(Model)]`, dérivations Request/Resource. |
-| `afrivel-cli-rt` | Jeu de sous-commandes runtime (migrate/seed/serve/route:list) exposé via clap, monté dans `app/src/main.rs`. **Contrat couplé à la CLI Go** — versionné via `afrivel_version` (DR-022). |
+| Crate | Rôle | Distribution |
+|-------|------|--------------|
+| `afrivel-cli` | **Binaire `afrivel`** (clap) : `new`, `make:*` (scaffolding/codegen), `dev`, et délégation des commandes runtime. Templates embarqués via `rust-embed`/`include_str!`, rendus avec **`minijinja`** (alternative typée : `askama`). | `cargo install afrivel` + binaires pré-compilés |
+| `afrivel-cli-rt` | Définition clap des sous-commandes **runtime** (migrate/seed/serve/route:list), **partagée** par `afrivel-cli` et le binaire `app`. Le contrat est donc vérifié à la compilation (pas de dérive). | dépendance |
+| `afrivel-core` | Routing (Axum/Tower), middleware, **type d'erreur + IntoResponse**, config typée (serde + figment), validation, logging (`tracing`), DI (State/Extension). | dépendance |
+| `afrivel-orm` | Couche ergonomique sur SeaORM/sqlx : relations, scopes, factories, seeders, agrégation de migrations. | dépendance |
+| `afrivel-macros` | `#[derive(Model)]`, dérivations Request/Resource. | dépendance |
 
-> Note : les crates `afrivel-*` sont des **dépendances** (registre/git), pas des membres du workspace de l'app. Les membres du workspace sont `app` + `modules/*`.
+> **Partage de logique** (avantage du mono-langage) : le parser du DSL `--model`, le mapping de types et les règles de nommage vivent dans une crate commune (`afrivel-codegen`/`afrivel-core`) réutilisée par `afrivel-cli` **et** les macros → une seule source de vérité.
+>
+> Les crates `afrivel-core/orm/macros/cli-rt` sont des **dépendances** (registre/git) ; les membres du workspace d'une app sont `app` + `modules/*`.

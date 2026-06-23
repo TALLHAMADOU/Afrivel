@@ -28,14 +28,15 @@ Objectif : un développeur peut `new` un projet, générer un module Auth comple
 - [ ] Seeders
 - [ ] Postgres (driver unique en v0.0.1)
 
-### CLI (`afrivel`, Go/Cobra)
+### CLI (`afrivel-cli`, Rust + clap)
 - [ ] `new`
-- [ ] `make:module` (+ `--model` DSL, codegen transactionnel)
+- [ ] `make:module` (+ `--model` DSL, codegen transactionnel, templates `minijinja`)
 - [ ] `make:*` granulaires
-- [ ] `migrate*`, `db:seed` (délégués)
-- [ ] `serve`, `dev` (watch/recompile/restart)
-- [ ] `module:list`, `route:list`
-- [ ] `completion`
+- [ ] `migrate*`, `db:seed` (délégués au binaire `app`)
+- [ ] `serve`, `dev` (watch via `notify` / recompile / restart)
+- [ ] `module:list` (hors-ligne), `route:list` (délégué)
+- [ ] `completion` (`clap_complete`)
+- [ ] `cargo install afrivel` + binaires pré-compilés
 - [ ] Tests : golden files + compilation réelle
 
 ### Module Auth (généré)

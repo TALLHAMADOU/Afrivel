@@ -39,21 +39,18 @@ Chaque décision : **ce qui est décidé**, **alternatives**, **pourquoi**.
 - **Alternatives** : reload assets/templates à chaud ; hot-swap dylib ; abandonner la promesse.
 - **Pourquoi** : Rust est compilé ; le hot-swap est fragile/expérimental. On reste honnête. Reload à chaud des assets/config non-compilés conservé comme bonus.
 
-### DR-008 — CLI en Go + Cobra (runtime en Rust)
-- **Décidé** : CLI `afrivel` développée en Go avec Cobra ; framework runtime en crates Rust.
-- **Alternatives** : CLI en Rust (clap).
-- **Pourquoi** : choix utilisateur. Cobra = excellente base (sous-commandes, flags, aide, complétion shell), binaire statique multi-OS. **Coût** : architecture bi-langage → frontière stricte requise (DR-009).
+### DR-008 — ~~CLI en Go + Cobra~~ → **RÉVERSÉE par DR-025**
+- **Décidé (initial)** : CLI `afrivel` en Go avec Cobra ; runtime en crates Rust.
+- **Statut** : **abandonnée**. Voir **DR-025** (CLI Rust unique). Conservée pour traçabilité.
 
-### DR-009 — CLI Go = orchestrateur ; runtime délégué à `cargo`
-- **Décidé** : la CLI Go fait scaffolding/codegen/watch ; délègue les commandes runtime à un binaire Rust de l'app.
-- **Alternatives** : binaire Rust compagnon pré-compilé ; drivers SQL Go natifs.
-- **Pourquoi** : source de vérité BDD unique (SeaORM), pas de double pile de drivers, frontière nette. La CLI ne touche jamais la BDD ni ne parse du Rust.
-- **Affiné par DR-018/DR-020** : la cible de délégation est `cargo run -p app -- <sous-cmd>` (crate `app` du workspace), et inclut `route:list`.
+### DR-009 — CLI = orchestrateur ; runtime délégué à `cargo`
+- **Décidé** : la CLI fait scaffolding/codegen/watch ; délègue les commandes runtime à un binaire Rust de l'app.
+- **Alternatives** : binaire Rust compagnon pré-compilé.
+- **Pourquoi** : source de vérité BDD unique (SeaORM), pas de double pile de drivers.
+- **Affiné par DR-018/DR-020/DR-025** : cible de délégation = `cargo run -p app -- <sous-cmd>` (inclut `route:list`) ; la CLI étant désormais en Rust, le contrat de délégation est partagé via `afrivel-cli-rt` (Rust↔Rust, sans frontière inter-langage).
 
-### DR-010 — Templates de codegen : `text/template` + `go:embed`
-- **Décidé** : templates embarqués dans le binaire Go via `go:embed`, rendus avec `text/template`.
-- **Alternatives** : fichiers templates externes ; codegen Rust pur.
-- **Pourquoi** : conséquence naturelle de DR-008 ; distribution mono-binaire, pas de dépendances runtime côté templates.
+### DR-010 — ~~Templates `text/template` + `go:embed`~~ → **RÉVERSÉE par DR-025**
+- **Statut** : **abandonnée** (conséquence de DR-008). Remplacée par templates `minijinja` embarqués via `rust-embed` (DR-025).
 
 ### DR-011 — Codegen transactionnel + sortie toujours compilable
 - **Décidé** : écriture atomique (rollback si échec partiel), `--dry-run`/`--force`, `rustfmt` post-génération ; squelettes vides **compilables**.
@@ -61,7 +58,7 @@ Chaque décision : **ce qui est décidé**, **alternatives**, **pourquoi**.
 
 ### DR-012 — Double registre : manifeste TOML + `mod.rs` ; code = vérité
 - **Décidé** : `Afrivel.toml` = vérité **outillage** (CLI) ; le code Rust = vérité **compilation**. En cas de divergence, le **code Rust fait foi** ; le manifeste est régénérable.
-- **Pourquoi** : la CLI Go lit/écrit le TOML sans parser du Rust (respect de la frontière DR-009), tout en gardant la compilation comme autorité finale.
+- **Pourquoi** : la CLI lit/écrit le TOML sans parser du Rust (introspection explicite et déterministe), tout en gardant la compilation comme autorité finale.
 - **Affiné par DR-018** : le registre de compilation n'est plus `modules/mod.rs` mais `app/src/registry.rs` + les path-deps des `Cargo.toml` (workspace).
 
 ### DR-013 — Boucle dev : garder l'ancien process vivant pendant le build
@@ -97,10 +94,10 @@ Chaque décision : **ce qui est décidé**, **alternatives**, **pourquoi**.
 - **Alternatives** : structure de dossiers libre ; style Rails-fin (services anémiques).
 - **Pourquoi** : c'est **la** matérialisation de la différenciation DR-017 ; sans règle de dépendance, « Clean Architecture » serait cosmétique.
 
-### DR-020 — `route:list` est délégué (pas pur Go)
+### DR-020 — `route:list` est délégué (pas hors-ligne)
 - **Décidé** : `route:list` délégué au runtime (`cargo run -p app -- route:list`).
 - **Alternatives** : lecture du manifeste (impossible) ; parsing du Rust (interdit, invariant n°2).
-- **Pourquoi** : corrige **F2**. Les routes vivent dans le Rust ; seul le runtime montant le routeur Axum les connaît. `module:list` reste pur Go (les modules sont dans `Afrivel.toml`).
+- **Pourquoi** : corrige **F2**. Les routes vivent dans le Rust ; seul le runtime montant le routeur Axum les connaît. `module:list` reste hors-ligne (les modules sont dans `Afrivel.toml`).
 
 ### DR-021 — Ordonnancement des migrations par timestamp
 - **Décidé** : migrations préfixées d'un timestamp (`AAAA_MM_JJ_HHMMSS_…`) ; `app/src/migrator.rs` agrège celles de tous les modules + `database/migrations/` et les trie ; SeaORM `Migrator` reçoit la liste triée.
@@ -108,8 +105,8 @@ Chaque décision : **ce qui est décidé**, **alternatives**, **pourquoi**.
 - **Pourquoi** : corrige **F3** (Auth.`users` avant Payment.FK). Ordre déterministe et indépendant des frontières de modules.
 
 ### DR-022 — DI compile-time + contrat de sous-commandes versionné
-- **Décidé** : DI = trait objects (`Arc<dyn Repo>`) câblés à l'enregistrement, partagés via Axum `State`/`Extension` (pas de conteneur runtime). Le jeu de sous-commandes Rust (`afrivel-cli-rt`) est le **contrat** consommé par la CLI Go, versionné via `afrivel_version` ; mismatch → `warn`.
-- **Pourquoi** : corrige **F6** (DI flou) et **F9** (contrat Go↔Rust non versionné).
+- **Décidé** : DI = trait objects (`Arc<dyn Repo>`) câblés à l'enregistrement, partagés via Axum `State`/`Extension` (pas de conteneur runtime). Le jeu de sous-commandes `afrivel-cli-rt` est **partagé** par la CLI globale et le binaire d'app (même crate) ; `afrivel_version` signale un écart de version CLI↔projet.
+- **Pourquoi** : corrige **F6** (DI flou) et **F9** — avec la bascule mono-langage (DR-025), le contrat n'est plus inter-langage mais une simple dépendance de crate vérifiée à la compilation.
 
 ### DR-023 — Gestion d'erreurs unifiée du framework
 - **Décidé** : `afrivel-core` expose `afrivel::Error` (enum) + `afrivel::Result<T>` ; `Error: IntoResponse` (mapping → statut HTTP + JSON). Conversions `From` depuis `sea_orm::DbErr`, validation, etc.
@@ -118,6 +115,16 @@ Chaque décision : **ce qui est décidé**, **alternatives**, **pourquoi**.
 ### DR-024 — Stack config & observabilité
 - **Décidé** : config typée via **serde + figment** (TOML `config/` + surcharges env/`.env`) ; logs structurés via **`tracing` + `tracing-subscriber`**.
 - **Pourquoi** : corrige **F8** (vague) ; standards de l'écosystème Tokio/Axum.
+
+### DR-025 — CLI unique en Rust (clap) — réverse DR-008/DR-010
+- **Décidé** : abandon de Go/Cobra. **Une seule CLI en Rust** : crate `afrivel-cli` (clap), binaire `afrivel` (`cargo install afrivel` + binaires pré-compilés). Codegen via templates **`minijinja`** embarqués (`rust-embed`/`include_str!`). Découpage conservé (CLI globale orchestratrice + binaire d'app pour le runtime), mais **tout en Rust**.
+- **Alternatives** : conserver Go + Cobra (DR-008) ; CLI Rust monolithique liant aussi l'app (impossible — la CLI globale est agnostique du projet).
+- **Pourquoi** :
+  1. **Mono-langage** pour un framework Rust = norme de l'écosystème (`sea-orm-cli`, `diesel_cli`, `cargo-loco`, `trunk`, `tauri-cli`…) ; ne fragmente pas la base de contributeurs.
+  2. **Partage de logique** : le parser du DSL `--model`, le mapping de types et les règles de nommage sont réutilisés par la CLI **et** les macros → une seule source de vérité (impossible en bi-langage).
+  3. **Supprime le contrat inter-langage** (F9) : `afrivel-cli` et `app` partagent `afrivel-cli-rt` → vérifié à la compilation.
+  4. Distribution idiomatique (`cargo install`), complétion via `clap_complete`.
+- **Coût accepté** : build de la CLI plus lent qu'en Go, binaire plus gros — sans enjeu pour un outil de dev (livré pré-compilé, démarrage négligeable).
 
 ---
 
