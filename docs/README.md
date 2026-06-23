@@ -17,12 +17,14 @@ Ces documents sont destinés aux **contributeurs** du framework. Pour la présen
 ## Décisions structurantes (résumé)
 
 - Couche de productivité au-dessus d'**Axum + Tower + Tokio** (pas un serveur HTTP de plus).
-- ORM ergonomique au-dessus de **SeaORM/sqlx**.
-- **CLI en Go + Cobra** = orchestrateur ; runtime en **crates Rust** ; délégation à `cargo run` pour tout ce qui touche la BDD.
-- Enregistrement modules/routes **explicite** (manifeste TOML + `mod.rs`), **sans réflexion runtime**.
+- ORM ergonomique au-dessus de **SeaORM/sqlx** ; migrations ordonnées par timestamp.
+- Projet généré = **Cargo workspace** ; chaque module = **crate** en **Clean Architecture** (couches `http → services → contracts ← repositories`).
+- **CLI en Go + Cobra** = orchestrateur ; runtime en **crates Rust** ; délégation à `cargo run -p app` pour BDD **et** introspection routeur (`route:list`).
+- Double registre **explicite** : `Afrivel.toml` (outillage) + `app/src/registry.rs`/`Cargo.toml` (compilation), **sans réflexion runtime** ; le code Rust fait foi.
+- Gestion d'erreurs unifiée (`afrivel::Error → IntoResponse`), config serde+figment, logs `tracing`.
 - Codegen **transactionnel**, sortie **toujours compilable** (garde-fou : test `cargo build` réel).
 - Auto-reload (watch/recompile/restart), **pas** de hot-swap.
 
 ## Points ouverts
 
-Licence, édition Rust (stable/nightly), et angle de différenciation vs **Loco.rs** — voir [ROADMAP.md](./ROADMAP.md).
+Aucun bloquant. Tous les points de design v0.0.1 sont tranchés (DR-001 → DR-024), y compris licence (`MIT OR Apache-2.0`), toolchain (Rust stable, edition 2024, MSRV 1.85+) et différenciation vs **Loco.rs** (module-centric + Clean Architecture). Voir [DECISIONS.md](./DECISIONS.md).

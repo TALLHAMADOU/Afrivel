@@ -6,7 +6,7 @@
 
 ## 1. Understanding Summary
 
-- **Quoi** : un framework web Rust OSS « batteries-included », couche de **productivité + génération de code** au-dessus d'**Axum + Tower + Tokio**. Fonctionnalité signature : `afrivel make:module` génère un module métier autonome complet.
+- **Quoi** : un framework web Rust OSS « batteries-included », couche de **productivité + génération de code** au-dessus d'**Axum + Tower + Tokio**. Fonctionnalité signature : `afrivel make:module` génère un module métier **encapsulé** complet (crate dédiée, dépendances inter-modules explicites).
 - **Pourquoi** : combler l'absence d'un full-stack « Laravel-like » productif en Rust, sans sacrifier performance, sécurité mémoire et concurrence.
 - **Pour qui** : pont **équitable** entre devs Laravel/Rails migrants et Rustaceans cherchant du batteries-included (tension de design assumée, arbitrée cas par cas).
 - **Comment** : ORM ergonomique au-dessus de **SeaORM/sqlx** ; enregistrement des modules/routes **explicite** maintenu par la CLI (pas de réflexion runtime) ; **CLI en Go + Cobra** orchestrant un runtime Rust ; auto-reload (watch/recompile/restart, pas de hot-swap).
@@ -29,7 +29,8 @@
 
 - **Performance** : pas de coût caché significatif au-dessus d'Axum ; le codegen produit du code idiomatique compilé.
 - **Sécurité** : hashing Argon2 par défaut, validation stricte des Requests, secrets hors du code, pas de `unsafe` non justifié.
-- **Fiabilité** : API publique versionnée ; sortie de `make:*` **toujours compilable**.
+- **Fiabilité** : API publique versionnée ; sortie de `make:*` **toujours compilable** ; gestion d'erreurs unifiée (`afrivel::Error` → réponses HTTP normalisées).
+- **Maintenabilité** : frontières de crate par module (encapsulation réelle) + règle de dépendance Clean Architecture imposée par défaut.
 - **Maintenance** : projet OSS — docs, tests (dont compilation réelle en CI), gouvernance des contributions.
 - **Portabilité** : CLI Go = binaire statique Linux/macOS/Windows ; runtime Rust multiplateforme.
 
@@ -39,8 +40,9 @@ OAuth2, queues/jobs/scheduler, events, API versioning, multi-BDD (MySQL/SQLite),
 
 ## 5. Périmètre v0.0.1
 
-- **Core** : routing (Axum), middleware, config typée, logging, validation, DI léger.
-- **ORM** : CRUD **+ relations** (requis par Auth), migrations, factories, seeders, **Postgres** d'abord.
+- **Core** : routing (Axum), middleware, **type d'erreur unifié → IntoResponse**, config typée (serde + figment, TOML+env), logging structuré (`tracing`), validation, DI compile-time (trait objects + Axum State/Extension).
+- **Architecture** : projet = **Cargo workspace** ; chaque module = **crate** appliquant la Clean Architecture (couches `http → services → contracts ← repositories`, domaine sans dépendance infra). Voir [ARCHITECTURE.md](./ARCHITECTURE.md).
+- **ORM** : CRUD **+ relations** (requis par Auth), migrations **ordonnées par timestamp**, factories, seeders, **Postgres** d'abord.
 - **CLI** : `new`, `make:module` (+ `--model`), `make:*` granulaires, `migrate*`, `db:seed`, `serve`, `dev`, `module:list`, `route:list`, `completion`.
 - **Module Auth complet** : JWT, RBAC, permissions, hashing Argon2.
 - **Démo** : 1 app end-to-end + auto-reload + suite de tests.
@@ -61,15 +63,16 @@ OAuth2, queues/jobs/scheduler, events, API versioning, multi-BDD (MySQL/SQLite),
 
 ```
 ┌─ afrivel (binaire Go/Cobra) ───────────────┐   ┌─ Runtime Rust (crates) ─────┐
-│ make:* (scaffolding + codegen, go:embed)   │   │ afrivel-core   (routing,DI) │
-│ new        (bootstrap projet)              │   │ afrivel-orm    (SeaORM++)   │
-│ dev/watch  (recompile+restart)             │──▶│ afrivel-cli-rt (sous-cmd    │
-│ manifest   (lecture/écriture registre)     │   │   migrate/serve/seed)       │
-│ route:list, module:list (lit manifeste)    │   │ afrivel-macros (derive)     │
-│ migrate/serve/seed  ──délègue──▶ cargo run │   │                             │
+│ make:* (scaffolding + codegen, go:embed)   │   │ afrivel-core (routing,err., │
+│ new        (bootstrap projet)              │   │   config, tracing, DI)      │
+│ dev/watch  (recompile+restart)             │──▶│ afrivel-orm    (SeaORM++)   │
+│ manifest   (lecture/écriture Afrivel.toml) │   │ afrivel-cli-rt (sous-cmd    │
+│ module:list (lit manifeste)                │   │   migrate/seed/serve/       │
+│ migrate/seed/serve/route:list ─délègue─▶   │   │   route:list)               │
+│        cargo run -p app -- <sous-cmd>      │   │ afrivel-macros (derive)     │
 └────────────────────────────────────────────┘   └─────────────────────────────┘
 ```
 
-**Frontière directrice** : la CLI Go ne touche jamais la BDD et ne parse jamais du Rust. Toute commande exigeant le runtime est déléguée à `cargo run` sur le binaire `src/bin/afrivel.rs` généré dans le projet.
+**Frontière directrice** : la CLI Go ne touche jamais la BDD et ne parse jamais du Rust. Toute commande exigeant le runtime (BDD ou introspection du routeur, dont `route:list`) est déléguée à `cargo run -p app -- <sous-cmd>` (crate `app` du workspace généré).
 
 Voir [`CLI.md`](./CLI.md) pour la spécification détaillée des commandes, et [`ARCHITECTURE.md`](./ARCHITECTURE.md) pour le layout et le double registre.

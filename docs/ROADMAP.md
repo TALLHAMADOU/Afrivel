@@ -7,10 +7,18 @@ Objectif : un développeur peut `new` un projet, générer un module Auth comple
 ### Core (`afrivel-core`)
 - [ ] Routing au-dessus d'Axum
 - [ ] Middleware (pipeline Tower)
-- [ ] Configuration typée (`config/`, `.env`)
-- [ ] Logging
+- [ ] **Type d'erreur unifié `afrivel::Error` + `IntoResponse`**
+- [ ] Configuration typée (serde + figment, `config/` + `.env`)
+- [ ] Logging structuré (`tracing` + `tracing-subscriber`)
 - [ ] Validation (Requests)
-- [ ] DI léger
+- [ ] DI compile-time (trait objects + Axum State/Extension)
+- [ ] Contrat `afrivel-cli-rt` (sous-commandes runtime via clap) + garde de version
+
+### Architecture du projet généré
+- [ ] Scaffolding **Cargo workspace** (`app/` + `modules/*`)
+- [ ] Squelette de module en Clean Architecture (`http/services/contracts/infra/domain`)
+- [ ] Dépendances inter-modules explicites (`--depends`, path-deps, `contracts`)
+- [ ] Agrégation + tri des migrations par timestamp (`app/src/migrator.rs`)
 
 ### ORM (`afrivel-orm`, sur SeaORM/sqlx)
 - [ ] CRUD

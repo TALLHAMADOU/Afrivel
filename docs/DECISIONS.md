@@ -45,9 +45,10 @@ Chaque décision : **ce qui est décidé**, **alternatives**, **pourquoi**.
 - **Pourquoi** : choix utilisateur. Cobra = excellente base (sous-commandes, flags, aide, complétion shell), binaire statique multi-OS. **Coût** : architecture bi-langage → frontière stricte requise (DR-009).
 
 ### DR-009 — CLI Go = orchestrateur ; runtime délégué à `cargo`
-- **Décidé** : la CLI Go fait scaffolding/codegen/watch ; délègue `migrate/serve/seed` à `cargo run` sur `src/bin/afrivel.rs`.
+- **Décidé** : la CLI Go fait scaffolding/codegen/watch ; délègue les commandes runtime à un binaire Rust de l'app.
 - **Alternatives** : binaire Rust compagnon pré-compilé ; drivers SQL Go natifs.
 - **Pourquoi** : source de vérité BDD unique (SeaORM), pas de double pile de drivers, frontière nette. La CLI ne touche jamais la BDD ni ne parse du Rust.
+- **Affiné par DR-018/DR-020** : la cible de délégation est `cargo run -p app -- <sous-cmd>` (crate `app` du workspace), et inclut `route:list`.
 
 ### DR-010 — Templates de codegen : `text/template` + `go:embed`
 - **Décidé** : templates embarqués dans le binaire Go via `go:embed`, rendus avec `text/template`.
@@ -59,8 +60,9 @@ Chaque décision : **ce qui est décidé**, **alternatives**, **pourquoi**.
 - **Pourquoi** : un `make:*` qui laisse un module à moitié généré ou non-compilable détruit le « wow » Laravel.
 
 ### DR-012 — Double registre : manifeste TOML + `mod.rs` ; code = vérité
-- **Décidé** : `Afrivel.toml` = vérité **outillage** (CLI) ; `modules/mod.rs` = vérité **compilation**. En cas de divergence, le **code Rust fait foi** ; le manifeste est régénérable.
+- **Décidé** : `Afrivel.toml` = vérité **outillage** (CLI) ; le code Rust = vérité **compilation**. En cas de divergence, le **code Rust fait foi** ; le manifeste est régénérable.
 - **Pourquoi** : la CLI Go lit/écrit le TOML sans parser du Rust (respect de la frontière DR-009), tout en gardant la compilation comme autorité finale.
+- **Affiné par DR-018** : le registre de compilation n'est plus `modules/mod.rs` mais `app/src/registry.rs` + les path-deps des `Cargo.toml` (workspace).
 
 ### DR-013 — Boucle dev : garder l'ancien process vivant pendant le build
 - **Décidé** : sur changement, rebuild ; ne tuer l'ancien serveur **qu'après** un build réussi ; filtrage rebuild (`.rs`) vs reload (config/assets).
@@ -84,6 +86,38 @@ Chaque décision : **ce qui est décidé**, **alternatives**, **pourquoi**.
 - **Décidé** : positionnement = **tranches verticales autonomes** (`make:module`) + **couches imposées par défaut** (Services / Repositories / Interfaces / Resources). Cible : apps maintenables, en équipe, à grande échelle.
 - **Alternatives** : DX bilingue Laravel-first ; scaffolding le plus complet ; angle robustesse/explicite.
 - **Pourquoi** : Loco vise le prototypage rapide façon Rails (composants fins, individuels). Afrivel occupe le créneau « Laravel Modules + Clean Architecture » — architecturalement distinct, aligné avec la fonctionnalité signature.
+
+### DR-018 — Layout : Cargo workspace, module = crate
+- **Décidé** : projet généré = **workspace** (`members = ["app", "modules/*"]`) ; chaque module est une **crate** ; l'app est la crate binaire.
+- **Alternatives** : modules sous `src/modules/` (crate unique) ; modules à la racine sans crate (**ne compile pas** — Cargo n'atteint que `src/`).
+- **Pourquoi** : corrige le **défaut bloquant F1** (le layout racine d'origine ne compilait pas). Le workspace donne de **vraies frontières de compilation** par module → encapsulation réelle, builds incrémentaux isolés, dépendances inter-modules explicites. Aligne le « module-centric + Clean Architecture » (DR-017) avec la réalité Rust. **Coût** : un `Cargo.toml` par module, builds à froid plus lourds.
+
+### DR-019 — Clean Architecture imposée : règle de dépendance
+- **Décidé** : chaque module applique `http → services → contracts ← repositories`, domaine (`models`) sans dépendance infra ; les `services` dépendent de **traits** (`contracts`), pas des repos concrets (DIP). Câblage trait→impl à l'enregistrement du module.
+- **Alternatives** : structure de dossiers libre ; style Rails-fin (services anémiques).
+- **Pourquoi** : c'est **la** matérialisation de la différenciation DR-017 ; sans règle de dépendance, « Clean Architecture » serait cosmétique.
+
+### DR-020 — `route:list` est délégué (pas pur Go)
+- **Décidé** : `route:list` délégué au runtime (`cargo run -p app -- route:list`).
+- **Alternatives** : lecture du manifeste (impossible) ; parsing du Rust (interdit, invariant n°2).
+- **Pourquoi** : corrige **F2**. Les routes vivent dans le Rust ; seul le runtime montant le routeur Axum les connaît. `module:list` reste pur Go (les modules sont dans `Afrivel.toml`).
+
+### DR-021 — Ordonnancement des migrations par timestamp
+- **Décidé** : migrations préfixées d'un timestamp (`AAAA_MM_JJ_HHMMSS_…`) ; `app/src/migrator.rs` agrège celles de tous les modules + `database/migrations/` et les trie ; SeaORM `Migrator` reçoit la liste triée.
+- **Alternatives** : ordre par module (casse les FK inter-modules) ; ordre manuel global.
+- **Pourquoi** : corrige **F3** (Auth.`users` avant Payment.FK). Ordre déterministe et indépendant des frontières de modules.
+
+### DR-022 — DI compile-time + contrat de sous-commandes versionné
+- **Décidé** : DI = trait objects (`Arc<dyn Repo>`) câblés à l'enregistrement, partagés via Axum `State`/`Extension` (pas de conteneur runtime). Le jeu de sous-commandes Rust (`afrivel-cli-rt`) est le **contrat** consommé par la CLI Go, versionné via `afrivel_version` ; mismatch → `warn`.
+- **Pourquoi** : corrige **F6** (DI flou) et **F9** (contrat Go↔Rust non versionné).
+
+### DR-023 — Gestion d'erreurs unifiée du framework
+- **Décidé** : `afrivel-core` expose `afrivel::Error` (enum) + `afrivel::Result<T>` ; `Error: IntoResponse` (mapping → statut HTTP + JSON). Conversions `From` depuis `sea_orm::DbErr`, validation, etc.
+- **Pourquoi** : corrige **F7** ; un framework web a besoin d'un chemin d'erreur cohérent. Propagation `?` dans les controllers.
+
+### DR-024 — Stack config & observabilité
+- **Décidé** : config typée via **serde + figment** (TOML `config/` + surcharges env/`.env`) ; logs structurés via **`tracing` + `tracing-subscriber`**.
+- **Pourquoi** : corrige **F8** (vague) ; standards de l'écosystème Tokio/Axum.
 
 ---
 

@@ -46,15 +46,22 @@ Au lieu de générer des composants isolés, Afrivel raisonne en **modules méti
 afrivel make:module Auth
 ```
 
-génère un module **totalement autonome** :
+génère une **crate de module encapsulée**, structurée en Clean Architecture :
 
 ```text
-modules/Auth/
-├── mod.rs            # enregistre routes & services du module
-├── models/      requests/      controllers/   services/
-├── interfaces/  repositories/  resources/
-├── migrations/  routes/        tests/
+modules/auth/                 # une crate Cargo dédiée
+├── Cargo.toml
+└── src/
+    ├── lib.rs · module.rs    # expose le module + câble repos → services (DI)
+    ├── contracts/            # interfaces publiques (traits) consommées par d'autres modules
+    ├── domain/   models/  services/      # métier — sans dépendance infra
+    ├── http/     controllers/ requests/ resources/ routes.rs
+    ├── infra/    repositories/           # implémentent les contracts (SeaORM)
+    ├── migrations/  tests/
 ```
+
+> Les modules sont **encapsulés**, pas isolés : une dépendance inter-module est explicite
+> (`afrivel make:module Payment --depends auth`) et passe uniquement par les `contracts`.
 
 ## Génération CRUD automatique
 
@@ -71,11 +78,12 @@ repositories, interfaces, contrôleurs, routes et tests — **toujours compilabl
 ## Structure d'un projet
 
 ```text
-myapp/
-├── Afrivel.toml      # manifeste du projet
-├── src/              # bootstrap (main.rs) + binaire CLI délégué
-├── modules/          # tes modules métier autonomes
-├── config/  routes/  database/  storage/  tests/
+myapp/                  # Cargo workspace
+├── Cargo.toml          # [workspace] members = ["app", "modules/*"]
+├── Afrivel.toml        # manifeste du projet
+├── app/                # crate binaire : bootstrap, registry, migrator
+├── modules/            # une crate par module métier (auth, payment, …)
+├── config/  database/  storage/  tests/
 ```
 
 ## Boucle de développement
@@ -102,8 +110,9 @@ afrivel serve    # lance l'application
 ## Fonctionnalités
 
 **v0.0.1 (en cours)**
-- Routing, middleware, configuration, logging, validation, DI léger
-- ORM ergonomique (CRUD + relations) au-dessus de SeaORM, migrations, factories, seeders (Postgres)
+- Routing, middleware, gestion d'erreurs unifiée (→ réponses HTTP), config typée, logs structurés (`tracing`), validation, DI compile-time
+- Modules en Clean Architecture (couches `http → services → contracts ← repositories`)
+- ORM ergonomique (CRUD + relations) au-dessus de SeaORM, migrations ordonnées, factories, seeders (Postgres)
 - CLI `afrivel` : `new`, `make:module`, génération CRUD, migrations, dev loop
 - Module **Auth** : JWT, RBAC, permissions, hashing Argon2
 
