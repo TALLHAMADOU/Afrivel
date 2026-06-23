@@ -4,15 +4,15 @@
 
 Objectif : un développeur peut `new` un projet, générer un module Auth complet par CLI, migrer, et lancer une API qui tourne — end-to-end.
 
-### Core (`afrivel-core`)
-- [ ] Routing au-dessus d'Axum
-- [ ] Middleware (pipeline Tower)
-- [ ] **Type d'erreur unifié `afrivel::Error` + `IntoResponse`**
-- [ ] Configuration typée (serde + figment, `config/` + `.env`)
-- [ ] Logging structuré (`tracing` + `tracing-subscriber`)
-- [ ] Validation (Requests)
-- [ ] DI compile-time (trait objects + Axum State/Extension)
-- [ ] Contrat `afrivel-cli-rt` (sous-commandes runtime via clap) + garde de version
+### Core (`afrivel-core`) — ✅ M1
+- [x] Routing au-dessus d'Axum (`Application` + trait `Module`)
+- [x] Middleware (pipeline Tower : `TraceLayer`, couches injectables)
+- [x] **Type d'erreur unifié `afrivel::Error` + `IntoResponse`**
+- [x] Configuration typée (serde + figment, `config/` + `.env`)
+- [x] Logging structuré (`tracing` + `tracing-subscriber`)
+- [x] Validation (Requests : trait `Validate` + extracteur `ValidatedJson`)
+- [x] DI compile-time (`Application::provide` → `Extension<Arc<dyn _>>`)
+- [ ] Contrat `afrivel-cli-rt` (sous-commandes runtime via clap) + garde de version — *M3*
 
 ### Architecture du projet généré
 - [ ] Scaffolding **Cargo workspace** (`app/` + `modules/*`)
