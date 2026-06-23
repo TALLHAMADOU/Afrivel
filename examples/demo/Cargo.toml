@@ -1,0 +1,13 @@
+[package]
+name = "demo"
+description = "Afrivel — application de démonstration end-to-end (utilisée par les tests CI)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+# Renseignées en M4/M5 : afrivel = { workspace = true } + module Auth généré.

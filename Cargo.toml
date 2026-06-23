@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = ["crates/*", "examples/*"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/TALLHAMADOU/Afrivel"
+authors = ["Afrivel contributors"]
+
+# Dépendances partagées du workspace — renseignées au fil des jalons (M1+).
+[workspace.dependencies]
+afrivel-codegen = { path = "crates/afrivel-codegen", version = "0.0.1" }
+afrivel-macros = { path = "crates/afrivel-macros", version = "0.0.1" }
+afrivel-core = { path = "crates/afrivel-core", version = "0.0.1" }
+afrivel-orm = { path = "crates/afrivel-orm", version = "0.0.1" }
+afrivel-cli-rt = { path = "crates/afrivel-cli-rt", version = "0.0.1" }
+afrivel = { path = "crates/afrivel", version = "0.0.1" }

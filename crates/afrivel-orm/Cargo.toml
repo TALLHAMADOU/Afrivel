@@ -1,0 +1,11 @@
+[package]
+name = "afrivel-orm"
+description = "Afrivel — ORM ergonomique au-dessus de SeaORM : relations, factories, seeders, migrator."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]

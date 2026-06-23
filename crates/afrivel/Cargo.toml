@@ -1,0 +1,15 @@
+[package]
+name = "afrivel"
+description = "Afrivel — façade du framework : re-export de core/orm/macros (dépendance des applications)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Renseignées en M1+ :
+# afrivel-core = { workspace = true }
+# afrivel-orm = { workspace = true }
+# afrivel-macros = { workspace = true }

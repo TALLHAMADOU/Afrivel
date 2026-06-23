@@ -1,0 +1,11 @@
+[package]
+name = "afrivel-cli-rt"
+description = "Afrivel — sous-commandes runtime (serve/migrate/seed/route:list), partagées CLI ↔ app."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]

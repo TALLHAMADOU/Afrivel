@@ -1,0 +1,16 @@
+[package]
+name = "afrivel-cli"
+description = "Afrivel — binaire CLI `afrivel` : new, make:*, dev, et délégation des commandes runtime."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "afrivel"
+path = "src/main.rs"
+
+[dependencies]
+# Renseignées en M3 : clap, minijinja, rust-embed, notify, afrivel-codegen, afrivel-cli-rt…

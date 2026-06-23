@@ -1,0 +1,11 @@
+[package]
+name = "afrivel-codegen"
+description = "Afrivel — logique de génération partagée (DSL --model, mapping de types, naming)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
