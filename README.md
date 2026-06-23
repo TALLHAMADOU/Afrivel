@@ -24,6 +24,11 @@ de code, architecture modulaire dès le premier jour.
 Afrivel comble ce manque — sans réinventer ce que l'écosystème Rust fait déjà très bien.
 Il s'appuie sur **Axum + Tower + Tokio** et **SeaORM**, et ajoute la couche de productivité.
 
+**Ce qui distingue Afrivel** : une approche **module-centric** (chaque fonctionnalité est une
+tranche verticale autonome) avec une **architecture en couches par défaut** — Services,
+Repositories, Interfaces, Resources. Pensé pour des applications **maintenables, en équipe,
+à grande échelle**, là où d'autres frameworks visent surtout le prototypage rapide.
+
 ## Philosophie
 
 - **Productivité avant tout** — concentre-toi sur la logique métier, pas sur la configuration.
@@ -120,7 +125,10 @@ traductions, idées. Le design complet vit dans [`/docs`](./docs/README.md) — 
 
 ## Licence
 
-À définir — `MIT OR Apache-2.0` proposé (standard de l'écosystème Rust).
+Double licence **MIT OR Apache-2.0**, au choix — standard de l'écosystème Rust.
+Voir [`LICENSE-MIT`](./LICENSE-MIT) et [`LICENSE-APACHE`](./LICENSE-APACHE).
+
+> Toolchain : Rust **stable**, edition **2024** (MSRV 1.85+).
 
 ---
 

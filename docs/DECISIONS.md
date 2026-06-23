@@ -70,9 +70,22 @@ Chaque décision : **ce qui est décidé**, **alternatives**, **pourquoi**.
 - **Décidé** : test d'intégration `new` → `make:module --model` → **`cargo build`** en tmpdir ; + golden files par template ; CI matrix OS × Rust.
 - **Pourquoi** : seul moyen fiable de garantir « toujours compilable » et de détecter les régressions de codegen.
 
+### DR-015 — Licence : `MIT OR Apache-2.0` (dual)
+- **Décidé** : double licence MIT + Apache-2.0 (`LICENSE-MIT`, `LICENSE-APACHE`).
+- **Alternatives** : MIT seule ; Apache-2.0 seule.
+- **Pourquoi** : standard de l'écosystème Rust ; compatibilité maximale + clause brevets (Apache).
+
+### DR-016 — Toolchain : Rust stable, edition 2024
+- **Décidé** : framework utilisable sur **Rust stable**, **edition 2024** → **MSRV 1.85+**. Aucune feature nightly requise.
+- **Alternatives** : stable edition 2021 ; nightly autorisé.
+- **Pourquoi** : edition 2024 = syntaxe moderne, et stable = adoption sérieuse + CI simple. Coût assumé : exclut les toolchains < 1.85.
+
+### DR-017 — Différenciation vs Loco.rs : Module-centric + Clean Architecture
+- **Décidé** : positionnement = **tranches verticales autonomes** (`make:module`) + **couches imposées par défaut** (Services / Repositories / Interfaces / Resources). Cible : apps maintenables, en équipe, à grande échelle.
+- **Alternatives** : DX bilingue Laravel-first ; scaffolding le plus complet ; angle robustesse/explicite.
+- **Pourquoi** : Loco vise le prototypage rapide façon Rails (composants fins, individuels). Afrivel occupe le créneau « Laravel Modules + Clean Architecture » — architecturalement distinct, aligné avec la fonctionnalité signature.
+
 ---
 
 ## Décisions en attente
-- **DR-A6** : licence (`MIT OR Apache-2.0` proposé).
-- **DR-A7** : édition Rust stable vs nightly.
-- **DR-RISK** : angle exact de différenciation vs Loco.rs.
+_Aucune — tous les points ouverts du design v0.0.1 sont tranchés._

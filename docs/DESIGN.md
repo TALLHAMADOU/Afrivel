@@ -21,8 +21,9 @@
 | A3 | Sécurité : défauts sains (Argon2, validation stricte, secrets via env/config). | Assumé |
 | A4 | Fiabilité : SemVer ; `0.x` = breaking changes tolérés mais documentés. | Assumé |
 | A5 | Templates de codegen : Go `text/template` + `go:embed`. | Validé |
-| A6 | Licence : `MIT OR Apache-2.0` (standard Rust). | **À confirmer** |
-| A7 | Édition Rust stable (pas de nightly requis pour utiliser le framework). | **À confirmer** |
+| A6 | Licence : `MIT OR Apache-2.0` (dual). | Validé (DR-015) |
+| A7 | Toolchain : Rust stable, edition 2024, MSRV 1.85+. | Validé (DR-016) |
+| A8 | Différenciation : module-centric + Clean Architecture (vs Loco.rs). | Validé (DR-017) |
 
 ## 3. Non-Functional Requirements
 
@@ -51,7 +52,7 @@ OAuth2, queues/jobs/scheduler, events, API versioning, multi-BDD (MySQL/SQLite),
 | Risque | Mitigation |
 |--------|------------|
 | Tension Laravel-familier vs idiomatique-Rust | Arbitrage cas par cas, documenté dans le Decision Log. |
-| Concurrent direct **Loco.rs** (même créneau/stack) | Différenciation : approche **module-centric**, DX **bilingue** Laravel↔Rust, CLI Go riche (complétion, codegen transactionnel). **À approfondir.** |
+| Concurrent direct **Loco.rs** (même créneau/stack) | Différenciation tranchée (DR-017) : **module-centric + Clean Architecture par défaut** (couches Services/Repositories/Interfaces), cible apps maintenables en équipe — vs l'approche Rails-fine de Loco. |
 | Codegen produisant du code non-compilable | Test d'intégration `cargo build` réel + golden files (garde-fou central). |
 | Architecture bi-langage (Go ↔ Rust) | Frontière stricte : la CLI Go ne touche jamais la BDD ni ne parse du Rust ; délègue à `cargo`. |
 | ORM Active-Record « magique » impossible en Rust | On bâtit sur SeaORM/sqlx + ergonomie via macros `derive`, pas de magie runtime. |

@@ -54,8 +54,8 @@ Objectif : un développeur peut `new` un projet, générer un module Auth comple
 
 ---
 
-## Décisions à trancher avant/pendant v0.0.1
+## Décisions tranchées
 
-1. **Licence** : `MIT OR Apache-2.0` (proposé, standard Rust) — à confirmer.
-2. **Édition Rust** : stable requis pour les utilisateurs — à confirmer (impacte les macros).
-3. **Différenciation vs Loco.rs** : angle exact (module-centric + DX bilingue + CLI Go riche) — à approfondir avant communication publique.
+1. **Licence** : `MIT OR Apache-2.0` (dual). ✅
+2. **Toolchain** : Rust stable, **edition 2024**, MSRV 1.85+. ✅
+3. **Différenciation vs Loco.rs** : Module-centric + Clean Architecture (couches Services/Repositories/Interfaces imposées par défaut ; cible apps maintenables en équipe). ✅
