@@ -9,6 +9,7 @@ Ces documents sont destinés aux **contributeurs** du framework. Pour la présen
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | CLI globale ↔ app, layout workspace, anatomie module, double registre, crates. |
 | [CLI.md](./CLI.md) | Spécification complète de la CLI : commandes, codegen `make:module`, erreurs, dev loop, tests. |
 | [ROADMAP.md](./ROADMAP.md) | Périmètre v0.0.1 (checklist) + post-v0.0.1 + décisions à trancher. |
+| [IMPLEMENTATION.md](./IMPLEMENTATION.md) | Plan d'implémentation séquencé (M0→M5), critères de sortie, tests, risques. |
 
 ## État du projet
 
