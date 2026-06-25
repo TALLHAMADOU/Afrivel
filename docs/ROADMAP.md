@@ -20,13 +20,18 @@ Objectif : un développeur peut `new` un projet, générer un module Auth comple
 - [ ] Dépendances inter-modules explicites (`--depends`, path-deps, `contracts`)
 - [ ] Agrégation + tri des migrations par timestamp (`app/src/migrator.rs`)
 
-### ORM (`afrivel-orm`, sur SeaORM/sqlx)
-- [ ] CRUD
-- [ ] Relations (1-1, 1-N, N-N) — requis par Auth
-- [ ] Migrations (registre + runner délégué)
-- [ ] Factories
-- [ ] Seeders
-- [ ] Postgres (driver unique en v0.0.1)
+### ORM (`afrivel-orm`, sur SeaORM/sqlx) — ✅ M2
+- [x] CRUD (`repository::{create,update,find,find_or_fail,all,delete}` + trait `Model`)
+- [x] Relations (1-1, 1-N, N-N) — pivot N-N migré + testé sur Postgres
+- [x] Migrations (agrégation + tri par timestamp `migrator::sorted`, DR-021)
+- [x] Factories (trait `Factory` : `definition`/`create`/`create_many`)
+- [x] Seeders (trait `Seeder` dyn-compatible + `run_seeders`)
+- [x] Postgres (driver unique en v0.0.1 ; test d'intégration en CI)
+
+### Codegen & macros — ✅ M2
+- [x] `afrivel-codegen` : parser DSL `--model`, mapping de types, naming (18 tests)
+- [x] `afrivel-macros` : `#[derive(Model)]` (lien entité + CRUD ergonomique)
+- [ ] Dérivations `Request`/`Resource` — *M3/M4 (couche HTTP)*
 
 ### CLI (`afrivel-cli`, Rust + clap)
 - [ ] `new`
