@@ -3,12 +3,14 @@
 #![forbid(unsafe_code)]
 
 pub mod app;
+pub mod auth;
 pub mod config;
 pub mod error;
 pub mod logging;
 pub mod validation;
 
 pub use app::{Application, Module};
+pub use auth::{AuthUser, Authorized, Guard};
 pub use error::{Error, Result};
 pub use validation::{Validate, ValidatedJson, ensure};
 
@@ -21,6 +23,7 @@ pub use tokio;
 /// Re-exports les plus courants pour les applications et modules générés.
 pub mod prelude {
     pub use crate::app::{Application, Module};
+    pub use crate::auth::{AuthUser, Authorized, Guard};
     pub use crate::error::{Error, Result};
     pub use crate::validation::{Validate, ValidatedJson, ensure};
 }
