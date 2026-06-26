@@ -1,0 +1,14 @@
+//! Composition de l'application — **généré** depuis `Afrivel.toml`.
+//!
+//! Enregistrement explicite des modules (aucune réflexion runtime). Régénéré par
+//! `afrivel make:module` ; les éditions manuelles seront écrasées.
+
+use afrivel::Application;
+
+/// Construit l'application en enregistrant tous les modules du projet.
+pub fn application() -> Application {
+    Application::new()
+{%- for m in modules %}
+        .register({{ m.snake }}::module())
+{%- endfor %}
+}

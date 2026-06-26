@@ -1,0 +1,17 @@
+//! Accès aux données {{ pascal }} — fines enveloppes typées sur `afrivel::orm::repository`.
+
+use afrivel::Result;
+use afrivel::orm::repository;
+use afrivel::orm::sea_orm::DatabaseConnection;
+
+use crate::model;
+
+/// Tous les enregistrements {{ pascal }}.
+pub async fn all(db: &DatabaseConnection) -> Result<Vec<model::Model>> {
+    repository::all::<model::Entity, _>(db).await
+}
+
+/// Un {{ pascal }} par identifiant, ou `Error::NotFound`.
+pub async fn find(db: &DatabaseConnection, id: i64) -> Result<model::Model> {
+    repository::find_or_fail::<model::Entity, _>(db, id).await
+}

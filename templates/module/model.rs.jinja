@@ -1,0 +1,25 @@
+//! Entité {{ pascal }} — SeaORM + `#[derive(afrivel::Model)]`.
+
+use afrivel::Model;
+// Rend le nom de crate `sea_orm` résoluble : les macros dérivées de SeaORM
+// (`DeriveEntityModel`, …) émettent des chemins `sea_orm::…` non qualifiés.
+use afrivel::orm::sea_orm;
+use afrivel::orm::sea_orm::entity::prelude::*;
+use serde::Serialize;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Model)]
+#[sea_orm(table_name = "{{ table }}")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i64,
+{%- for f in fields %}
+    pub {{ f.name }}: {{ f.rust_ty }},
+{%- endfor %}
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}

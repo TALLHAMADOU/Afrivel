@@ -1,0 +1,9 @@
+# Configuration par défaut. Surchargée par les variables d'environnement
+# (préfixe `APP_`) et un éventuel `.env`.
+[server]
+host = "127.0.0.1"
+port = 3000
+
+[database]
+# Surchargée par la variable d'environnement DATABASE_URL.
+url = "postgres://localhost/{{ snake_name }}"

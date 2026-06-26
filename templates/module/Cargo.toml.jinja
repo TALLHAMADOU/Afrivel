@@ -1,0 +1,19 @@
+# Crate du module `{{ snake }}` — généré par `afrivel make:module`.
+[package]
+name = "{{ snake }}"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+{{ afrivel_dep }}
+{%- if has_model %}
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+{%- if uses_uuid %}
+uuid = { version = "1", features = ["serde"] }
+{%- endif %}
+{%- if uses_decimal %}
+rust_decimal = { version = "1", features = ["serde"] }
+{%- endif %}
+{%- endif %}

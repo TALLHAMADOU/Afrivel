@@ -1,0 +1,23 @@
+//! Contrôleur HTTP {{ pascal }} (lecture). Les erreurs `afrivel::Error` sont converties
+//! en réponses JSON normalisées par le noyau.
+
+use afrivel::Error;
+use afrivel::axum::{Extension, Json, extract::Path};
+use afrivel::orm::sea_orm::DatabaseConnection;
+
+use crate::{model, repository};
+
+/// `GET /{{ plural }}` — liste les {{ plural }}.
+pub async fn index(
+    Extension(db): Extension<DatabaseConnection>,
+) -> Result<Json<Vec<model::Model>>, Error> {
+    Ok(Json(repository::all(&db).await?))
+}
+
+/// `GET /{{ plural }}/{id}` — un {{ snake }} par identifiant.
+pub async fn show(
+    Extension(db): Extension<DatabaseConnection>,
+    Path(id): Path<i64>,
+) -> Result<Json<model::Model>, Error> {
+    Ok(Json(repository::find(&db, id).await?))
+}

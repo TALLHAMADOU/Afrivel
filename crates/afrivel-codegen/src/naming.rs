@@ -114,14 +114,79 @@ pub fn table_name(model: &str) -> String {
 }
 
 /// Vérifie qu'une chaîne est un identifiant Rust ASCII valide (lettre/`_` puis
-/// alphanumériques/`_`).
+/// alphanumériques/`_`) **et n'est pas un mot-clé** réservé du langage.
+///
+/// Rejeter les mots-clés garantit que le code généré (champs d'entité, noms de modules)
+/// compile sans recours aux identifiants bruts (`r#…`) — cf. docs/CLI.md.
 pub fn is_valid_ident(s: &str) -> bool {
     let mut chars = s.chars();
     match chars.next() {
         Some(c) if c.is_ascii_alphabetic() || c == '_' => {}
         _ => return false,
     }
-    chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+    if !chars.all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return false;
+    }
+    !is_rust_keyword(s)
+}
+
+/// Indique si `s` est un mot-clé Rust (réservé ou strict, éditions 2015–2024).
+pub fn is_rust_keyword(s: &str) -> bool {
+    matches!(
+        s,
+        "as" | "break"
+            | "const"
+            | "continue"
+            | "crate"
+            | "dyn"
+            | "else"
+            | "enum"
+            | "extern"
+            | "false"
+            | "fn"
+            | "for"
+            | "if"
+            | "impl"
+            | "in"
+            | "let"
+            | "loop"
+            | "match"
+            | "mod"
+            | "move"
+            | "mut"
+            | "pub"
+            | "ref"
+            | "return"
+            | "self"
+            | "Self"
+            | "static"
+            | "struct"
+            | "super"
+            | "trait"
+            | "true"
+            | "type"
+            | "unsafe"
+            | "use"
+            | "where"
+            | "while"
+            | "async"
+            | "await"
+            | "gen"
+            | "try"
+            | "union"
+            | "abstract"
+            | "become"
+            | "box"
+            | "do"
+            | "final"
+            | "macro"
+            | "override"
+            | "priv"
+            | "typeof"
+            | "unsized"
+            | "virtual"
+            | "yield"
+    )
 }
 
 #[cfg(test)]
@@ -174,5 +239,9 @@ mod tests {
         assert!(!is_valid_ident("2cool"));
         assert!(!is_valid_ident("a-b"));
         assert!(!is_valid_ident(""));
+        // Mots-clés Rust rejetés (sinon le code généré ne compilerait pas).
+        assert!(!is_valid_ident("ref"));
+        assert!(!is_valid_ident("type"));
+        assert!(!is_valid_ident("move"));
     }
 }

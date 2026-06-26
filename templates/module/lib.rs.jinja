@@ -1,0 +1,42 @@
+//! Module `{{ snake }}` — généré par `afrivel make:module`.
+
+{% if has_model -%}
+mod controller;
+mod migration;
+mod model;
+mod repository;
+mod routes;
+{%- else -%}
+mod routes;
+{%- endif %}
+
+use afrivel::Module;
+use afrivel::axum::Router;
+use afrivel::orm::sea_orm_migration::prelude::MigrationTrait;
+
+/// Le module {{ pascal }}, enregistrable dans l'`Application`.
+pub struct {{ pascal }}Module;
+
+/// Construit le module (appelé par `app/src/registry.rs`).
+pub fn module() -> {{ pascal }}Module {
+    {{ pascal }}Module
+}
+
+impl Module for {{ pascal }}Module {
+    fn name(&self) -> &'static str {
+        "{{ snake }}"
+    }
+
+    fn routes(&self) -> Router {
+        routes::routes()
+    }
+}
+
+/// Migrations exposées par le module (agrégées par `app/src/migrator.rs`).
+pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+{%- if has_model %}
+    vec![Box::new(migration::Migration)]
+{%- else %}
+    Vec::new()
+{%- endif %}
+}

@@ -1,0 +1,24 @@
+//! Routes du module {{ pascal }}.
+
+use afrivel::axum::{Router, routing::get};
+{%- if has_model %}
+
+use crate::controller;
+
+/// Table des routes du module (CRUD de lecture câblé sur le contrôleur).
+pub fn routes() -> Router {
+    Router::new()
+        .route("/{{ plural }}", get(controller::index))
+        .route("/{{ plural }}/{id}", get(controller::show))
+}
+{%- else %}
+
+/// Table des routes du module (squelette — à compléter).
+pub fn routes() -> Router {
+    Router::new().route("/{{ plural }}", get(index))
+}
+
+async fn index() -> &'static str {
+    "module {{ snake }}"
+}
+{%- endif %}

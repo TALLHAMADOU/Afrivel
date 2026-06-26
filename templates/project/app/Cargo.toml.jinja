@@ -1,0 +1,17 @@
+# Crate `app` — binaire runtime du projet. Géré par Afrivel : la liste des modules
+# est régénérée depuis `Afrivel.toml` à chaque `afrivel make:module`.
+[package]
+name = "app"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "app"
+path = "src/main.rs"
+
+[dependencies]
+{{ afrivel_dep }}
+{{ afrivel_rt_dep }}
+clap = { version = "4", features = ["derive"] }
+{% for m in modules %}{{ m.snake }} = { path = "../modules/{{ m.snake }}" }
+{% endfor %}

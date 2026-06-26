@@ -1,0 +1,65 @@
+//! Binaire `app` — runtime du projet. Parse les sous-commandes **runtime** partagées
+//! (`afrivel-cli-rt`) et les exécute en montant l'`Application`. La CLI globale `afrivel`
+//! délègue ici (`cargo run -p app -- <cmd>`).
+
+mod migrator;
+mod registry;
+
+use afrivel::orm::sea_orm::{Database, DatabaseConnection};
+use afrivel::orm::sea_orm_migration::MigratorTrait;
+use afrivel_cli_rt::RuntimeCommand;
+use clap::Parser;
+
+use migrator::Migrator;
+
+type BoxError = Box<dyn std::error::Error + Send + Sync>;
+
+#[derive(Parser)]
+#[command(name = "app", about = "Runtime Afrivel du projet")]
+struct Cli {
+    #[command(subcommand)]
+    command: RuntimeCommand,
+}
+
+// `tokio` n'est pas une dépendance directe : on cible le ré-export d'Afrivel via un
+// chemin pleinement qualifié, et `crate = "…"` aligne le code généré sur ce ré-export.
+#[afrivel::tokio::main(crate = "afrivel::tokio")]
+async fn main() -> Result<(), BoxError> {
+    afrivel::logging::init();
+
+    match Cli::parse().command {
+        RuntimeCommand::Serve { port, host } => {
+            let db = connect().await?;
+            let addr: std::net::SocketAddr = format!("{host}:{port}").parse()?;
+            registry::application().provide(db).serve(addr).await?;
+        }
+        RuntimeCommand::Migrate => {
+            Migrator::up(&connect().await?, None).await?;
+        }
+        RuntimeCommand::MigrateRollback { steps } => {
+            Migrator::down(&connect().await?, Some(steps)).await?;
+        }
+        RuntimeCommand::MigrateFresh => {
+            Migrator::fresh(&connect().await?).await?;
+        }
+        RuntimeCommand::MigrateStatus => {
+            Migrator::status(&connect().await?).await?;
+        }
+        RuntimeCommand::DbSeed => {
+            println!("Aucun seeder enregistré.");
+        }
+        RuntimeCommand::RouteList => {
+            for module in registry::application().modules() {
+                println!("module: {module}");
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Ouvre une connexion à la base depuis `DATABASE_URL`.
+async fn connect() -> Result<DatabaseConnection, BoxError> {
+    let url = std::env::var("DATABASE_URL")
+        .map_err(|_| "DATABASE_URL n'est pas défini (voir config/ ou .env)")?;
+    Ok(Database::connect(url).await?)
+}

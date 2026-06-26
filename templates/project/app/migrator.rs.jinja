@@ -1,0 +1,19 @@
+//! Migrator agrégé — **généré** depuis `Afrivel.toml`.
+//!
+//! Collecte les migrations de chaque module puis les ordonne par timestamp (DR-021)
+//! via `afrivel::orm::migrator::sorted`. Régénéré par `afrivel make:module`.
+
+use afrivel::orm::sea_orm_migration::prelude::*;
+
+pub struct Migrator;
+
+impl MigratorTrait for Migrator {
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        #[allow(unused_mut)]
+        let mut all: Vec<Box<dyn MigrationTrait>> = Vec::new();
+{%- for m in modules %}
+        all.extend({{ m.snake }}::migrations());
+{%- endfor %}
+        afrivel::orm::migrator::sorted(all)
+    }
+}

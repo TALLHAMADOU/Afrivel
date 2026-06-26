@@ -1,0 +1,9 @@
+# Workspace géré par Afrivel. Les membres sont découverts par glob :
+# `app` (le binaire runtime) + toutes les crates sous `modules/`.
+[workspace]
+resolver = "2"
+members = ["app", "modules/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
