@@ -56,5 +56,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Test (workspace)
-        run: cargo test --workspace
+      # Applique les migrations de l'app démo contre Postgres (commande runtime réelle).
+      - name: Migrate (demo)
+        run: cargo run -p demo -- migrate:fresh
+      # Smoke end-to-end : inscription → connexion → accès protégé sur la vraie base.
+      - name: Smoke HTTP (demo)
+        run: cargo test -p demo --test postgres_smoke
+
+  # Audit des dépendances (avis RustSec) — informatif, n'échoue pas la CI.
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

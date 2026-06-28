@@ -4,6 +4,8 @@ Ces documents sont destinés aux **contributeurs** du framework. Pour la présen
 
 | Document | Contenu |
 |----------|---------|
+| [QUICKSTART.md](./QUICKSTART.md) | Prise en main : `new`, `make:module`, migrations, `serve`, flux Auth. |
+| [modules/auth.md](./modules/auth.md) | Module Auth de référence : primitives `afrivel::auth`, couches, routes, RBAC. |
 | [DESIGN.md](./DESIGN.md) | Understanding summary, hypothèses, NFR, périmètre v0.0.1, risques. |
 | [DECISIONS.md](./DECISIONS.md) | Decision Log (DR-001 → DR-014 + décisions en attente). |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | CLI globale ↔ app, layout workspace, anatomie module, double registre, crates. |

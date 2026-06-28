@@ -136,11 +136,11 @@ afrivel-core ────┼─▶ afrivel-orm ─────┘               
 
 **But** : prouver l'end-to-end et publier la v0.0.1.
 
-- [ ] `examples/demo` : app réelle utilisant Auth, lancée en CI (`migrate` + smoke test HTTP).
-- [ ] Docs utilisateur : quickstart, référence CLI générée, page par module.
-- [ ] `cargo install afrivel` vérifié ; binaires pré-compilés (release workflow).
-- [ ] Pass `clippy`/`fmt`/audit deps ; vérif licences ; `CHANGELOG.md`.
-- [ ] **Tag `v0.0.1`** + publication (crates.io optionnel).
+- [x] `examples/demo` : app réelle utilisant Auth, lancée en CI (`migrate:fresh` + smoke test HTTP sur Postgres).
+- [x] Docs utilisateur : [quickstart](./QUICKSTART.md), [référence CLI](./CLI.md), [page module Auth](./modules/auth.md).
+- [x] `cargo install afrivel` (binaire `afrivel-cli`) ; binaires pré-compilés (`.github/workflows/release.yml`).
+- [x] Pass `clippy`/`fmt`/audit deps (`cargo audit` en CI) ; licences `MIT OR Apache-2.0` ; `CHANGELOG.md`.
+- [ ] **Tag `v0.0.1`** + publication (crates.io optionnel) — *poussé manuellement*.
 
 **Sortie** : la « Définition de fini » passe intégralement en CI.
 
