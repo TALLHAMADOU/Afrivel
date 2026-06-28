@@ -1,7 +1,8 @@
 # Afrivel — Plan d'implémentation v0.0.1
 
-> Plan séquencé pour passer du design au premier jalon utilisable. Découpé en jalons
-> (M0→M5) avec **tâches**, **critères de sortie testables** et **risques**. Aligné sur
+> Plan séquencé pour passer du design au premier jalon utilisable, puis au cap `v0.1.0`.
+> Découpé en jalons (**M0→M5** pour la `v0.0.1`, **M6→M8** pour la `v0.1.0` « DX & couche
+> données ») avec **tâches**, **critères de sortie testables** et **risques**. Aligné sur
 > [DESIGN.md](./DESIGN.md), [ARCHITECTURE.md](./ARCHITECTURE.md), [DECISIONS.md](./DECISIONS.md).
 
 ## Définition de « fini » (v0.0.1)
@@ -146,6 +147,61 @@ afrivel-core ────┼─▶ afrivel-orm ─────┘               
 
 ---
 
+# v0.1.0 — DX & couche données
+
+> Cap suivant après la `v0.0.1`. Objectif : **tenir la promesse « expérience Laravel »** sur le
+> quotidien du dev — un ORM réellement expressif, des tests rapides et isolés, et des générateurs
+> granulaires. Priorité **avant** jobs/queues/events : sans harnais de test, chaque feature future
+> coûte plus cher à valider.
+
+## M6 — Conventions ORM (l'ORM expressif)
+
+**But** : que le modèle généré « fasse ce qu'on attend » sans code répétitif.
+
+- [ ] **Timestamps automatiques** : `created_at`/`updated_at` gérés à l'insert/update (via `ActiveModelBehavior` ou attribut de la macro `Model`), plus de `Set(Utc::now())` manuel.
+- [ ] **Soft deletes** : colonne `deleted_at` opt-in + scope par défaut excluant les supprimés + `restore()`/`force_delete()`.
+- [ ] **Eager loading** ergonomique : helper `with(relation)` (anti-N+1) au-dessus des relations SeaORM.
+- [ ] **Scopes & query helpers** : filtres réutilisables (ex. `published()`), `find_or_fail` (→ `Error::NotFound`).
+- [ ] **Transactions** : `db.transaction(|tx| async { … })` ergonomique, rollback automatique sur `Err`.
+- [ ] **Pagination** : `Paginator` (page/per_page) + resource JSON paginée (`data` + `meta`).
+- [ ] DSL `make:module` étendu : flags `--timestamps`, `--soft-deletes`.
+
+**Sortie** : test d'intégration (Postgres) — CRUD avec timestamps auto, soft-delete (l'entité disparaît des requêtes par défaut, réapparaît via scope), `with()` sans N+1, et liste paginée — **vert**.
+**Risque** : moyen (ergonomie au-dessus de SeaORM sans fuir l'abstraction).
+
+---
+
+## M7 — SQLite + harnais de test (la DX qui convertit)
+
+**But** : tester une app Afrivel aussi facilement qu'en Laravel.
+
+- [ ] **Backend SQLite** (feature ORM) — cible : **SQLite en mémoire** pour des tests rapides et hermétiques.
+- [ ] **`afrivel::testing`** : `TestClient` (enveloppe le `Router` + `oneshot`) avec helpers `get/post_json/...` et assertions (`assert_status`, `assert_json`).
+- [ ] **Isolation par test** : chaque test sur une base fraîche (SQLite `:memory:` migrée) **ou** transaction rollback.
+- [ ] **Factories** : trait `Factory` (+ derive/builder) pour fabriquer des modèles de test (`User::factory().create(&db)`), avec états/overrides.
+- [ ] Réécriture des tests Auth du `demo` sur le nouveau harnais (preuve d'ergonomie).
+- [ ] Doc : page « Tester une app Afrivel ».
+
+**Sortie** : un test d'intégration tourne sur **SQLite en mémoire**, isolé, en utilisant `TestClient` + une factory — sans Postgres, en quelques lignes. Ajouté en CI (job rapide sans service DB).
+**Risque** : moyen-élevé (parité comportementale SQLite↔Postgres ; design de l'API factories).
+
+---
+
+## M8 — Générateurs granulaires + migrations évolutives
+
+**But** : faire évoluer un projet existant à la vitesse d'artisan.
+
+- [ ] **`make:migration`** : génère une migration horodatée (squelette `up`/`down`), enregistrée dans le `migrator` — pour faire évoluer le schéma après le scaffold initial (add/drop column…).
+- [ ] **`make:*` granulaires** partageant la fabrique de templates : `make:{controller,request,resource,service,repository,seeder,factory,test,middleware}`.
+- [ ] **Seeders** : abstraction `Seeder` + `db:seed` qui exécute les seeders enregistrés (remplace le stub), `make:seeder`.
+- [ ] `make:command` (commandes CLI custom de l'app).
+- [ ] Garde-fou : chaque générateur couvert par l'e2e (génère → **`cargo build`** vert), golden files.
+
+**Sortie** : `make:migration add_views_to_posts` → `migrate` applique la colonne ; `db:seed` peuple via un seeder généré ; **tous les `make:*` compilent** en test e2e.
+**Risque** : moyen (volume de templates ; cohérence avec le double registre).
+
+---
+
 ## Stratégie de test (transversale)
 
 | Niveau | Cible | Où |
@@ -158,7 +214,8 @@ afrivel-core ────┼─▶ afrivel-orm ─────┘               
 
 ## Ordre recommandé & parallélisation
 
-- Séquentiel critique : **M0 → M1 → M2 → M3 → M4 → M5**.
+- Séquentiel critique : **M0 → M1 → M2 → M3 → M4 → M5** (`v0.0.1`), puis **M6 → M7 → M8** (`v0.1.0`).
+- `v0.1.0` : M6 (conventions ORM) **avant** M7 (le harnais de test s'appuie sur factories + SQLite) ; M8 (générateurs) clôt en s'appuyant sur les conventions et le harnais (génération de tests/factories).
 - Parallélisable : `afrivel-codegen` (M2) peut démarrer dès M0 ; les **templates** (M3) peuvent être ébauchés pendant M1/M2 ; la **CI** se construit en continu.
 
 ## Risques majeurs & mitigations
